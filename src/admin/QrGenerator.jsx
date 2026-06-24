@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
-const BASE_URL = "https://patch-onboarding.vercel.app/"; // <-- cambia esto por tu dominio real de Vercel
+const BASE_URL = "https://patch-onboarding.vercel.app/"; // <-- cambia esto por tu dominio real de Vercel 1
 
 export default function QrGenerator() {
   const [deviceId, setDeviceId] = useState("CP-A3F2");
