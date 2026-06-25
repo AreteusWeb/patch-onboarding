@@ -38,6 +38,27 @@ function bytesToBase64(bytes) {
   return window.btoa(binary);
 }
 
+// Tamaño máximo de cada escritura BLE. Android suele limitar el MTU a ~23 bytes
+// (20 de payload útil), así que mandamos las credenciales en pedacitos en vez
+// de un solo writeValue() grande.
+const BLE_CHUNK_SIZE = 16;
+
+// Envuelve el payload cifrado con un header de 2 bytes (longitud total),
+// y lo manda en varios writeValue() seguidos, esperando cada uno antes
+// de mandar el siguiente (evita errores de "GATT busy" en Android).
+export async function writeCredentialsChunked(characteristic, encryptedPayload) {
+  const totalLen = encryptedPayload.length;
+  const framed = new Uint8Array(2 + totalLen);
+  framed[0] = (totalLen >> 8) & 0xff; // length high byte
+  framed[1] = totalLen & 0xff; // length low byte
+  framed.set(encryptedPayload, 2);
+
+  for (let offset = 0; offset < framed.length; offset += BLE_CHUNK_SIZE) {
+    const chunk = framed.slice(offset, offset + BLE_CHUNK_SIZE);
+    await characteristic.writeValue(chunk);
+  }
+}
+
 // Cifra { ssid, password } y devuelve un objeto Uint8Array listo para
 // escribirse en la característica BLE: [16 bytes IV][ciphertext...]
 export async function encryptCredentials(ssid, password) {

@@ -14,10 +14,11 @@ import {
   CHAR_CREDENTIALS_UUID,
   CHAR_STATUS_UUID,
   encryptCredentials,
+  writeCredentialsChunked,
   decodeJsonValue,
   isWebBluetoothAvailable,
   isIOS,
-} from "../utils/bleProtocol";
+} from "../utils/bleProtocol"; // ajustado: bleProtocol.js vive en src/utils/
 
 const STEPS = {
   START: "start",
@@ -107,7 +108,7 @@ export default function DeviceSetupPage() {
     setErrorMsg("");
     try {
       const payload = await encryptCredentials(selectedSsid, password);
-      await credentialsChar.writeValue(payload);
+      await writeCredentialsChunked(credentialsChar, payload);
       // Ahora esperamos la notificación de status (ver listener arriba)
     } catch (err) {
       console.error(err);
