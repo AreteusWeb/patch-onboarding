@@ -7,7 +7,7 @@
 // 2. Si hay Web Bluetooth -> conectar por BLE, leer redes WiFi cercanas, pedir
 //    contraseña, cifrar y enviar credenciales, esperar confirmación.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BLE_SERVICE_UUID,
   CHAR_WIFI_LIST_UUID,
@@ -34,6 +34,10 @@ const STEPS = {
 export default function DeviceSetupPage() {
   const [deviceId, setDeviceId] = useState(null);
   const [step, setStep] = useState(STEPS.START);
+  const stepRef = useRef(step);
+  useEffect(() => {
+    stepRef.current = step;
+  }, [step]);
   const [networks, setNetworks] = useState([]);
   const [selectedSsid, setSelectedSsid] = useState("");
   const [password, setPassword] = useState("");
@@ -81,7 +85,9 @@ export default function DeviceSetupPage() {
         if (!status) return;
         if (status.status === "connected") {
           setStep(STEPS.SUCCESS);
-          device.gatt.disconnect(); // BLE ya no se necesita
+          // Pequeña pausa antes de cortar BLE: le da tiempo a cualquier
+          // write que aún estuviera confirmándose del lado de Android.
+          setTimeout(() => device.gatt.disconnect(), 500);
         } else if (status.status === "failed") {
           setErrorMsg("El dispositivo no pudo conectarse a esa red. Verifica la contraseña.");
           setStep(STEPS.ERROR);
@@ -112,6 +118,10 @@ export default function DeviceSetupPage() {
       // Ahora esperamos la notificación de status (ver listener arriba)
     } catch (err) {
       console.error(err);
+      // Si ya habíamos llegado a SUCCESS (porque la notificación de "connected"
+      // ya llegó), un error tardío aquí es solo un write que truena por el
+      // disconnect que disparamos al tener éxito. Lo ignoramos, no es un error real.
+      if (stepRef.current === STEPS.SUCCESS) return;
       setErrorMsg("No se pudieron enviar las credenciales. Intenta de nuevo.");
       setStep(STEPS.ERROR);
     }
