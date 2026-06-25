@@ -46,6 +46,19 @@ const BLE_CHUNK_SIZE = 16;
 // Envuelve el payload cifrado con un header de 2 bytes (longitud total),
 // y lo manda en varios writeValue() seguidos, esperando cada uno antes
 // de mandar el siguiente (evita errores de "GATT busy" en Android).
+async function writeChunkWithRetry(characteristic, chunk, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await characteristic.writeValue(chunk);
+      return;
+    } catch (err) {
+      console.warn(`writeValue falló (intento ${attempt}/${maxAttempts}):`, err);
+      if (attempt === maxAttempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+  }
+}
+
 export async function writeCredentialsChunked(characteristic, encryptedPayload) {
   const totalLen = encryptedPayload.length;
   const framed = new Uint8Array(2 + totalLen);
@@ -55,7 +68,11 @@ export async function writeCredentialsChunked(characteristic, encryptedPayload) 
 
   for (let offset = 0; offset < framed.length; offset += BLE_CHUNK_SIZE) {
     const chunk = framed.slice(offset, offset + BLE_CHUNK_SIZE);
-    await characteristic.writeValue(chunk);
+    await writeChunkWithRetry(characteristic, chunk);
+    // Pequeña pausa entre writes: el stack BLE de Android a veces marca un
+    // write como fallido (aunque sí haya llegado) si se manda el siguiente
+    // demasiado rápido. 40ms le da tiempo suficiente sin notarse para el usuario.
+    await new Promise((resolve) => setTimeout(resolve, 40));
   }
 }
 
