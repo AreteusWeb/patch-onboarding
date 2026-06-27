@@ -287,6 +287,7 @@ const styles = {
     lineHeight: 1.3,
     margin: 0,
     marginBottom: 6,
+    color: "#1a1a1a",
   },
   deviceId: { color: "#888", fontSize: 13, marginBottom: 20 },
   label: { display: "block", fontSize: 13, fontWeight: 600, marginTop: 16, marginBottom: 6 },
