@@ -229,6 +229,7 @@ export default function DeviceSetupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
 
@@ -261,11 +262,11 @@ const styles = {
   page: {
     minHeight: "100vh",
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "flex-start",
     background: "#0f1115",
-    padding: 16,
-    fontFamily: "system-ui, -apple-system, sans-serif",
+    padding: "64px 16px",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   card: {
     background: "#ffffff",
@@ -274,8 +275,18 @@ const styles = {
     maxWidth: 420,
     width: "100%",
     boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+    color: "#1a1a1a",
+    lineHeight: 1.55,
+    letterSpacing: "0.1px",
   },
-  title: { fontSize: 22, margin: 0, marginBottom: 4 },
+  title: {
+    fontSize: 23,
+    fontWeight: 650,
+    letterSpacing: "0.1px",
+    lineHeight: 1.3,
+    margin: 0,
+    marginBottom: 6,
+  },
   deviceId: { color: "#888", fontSize: 13, marginBottom: 20 },
   label: { display: "block", fontSize: 13, fontWeight: 600, marginTop: 16, marginBottom: 6 },
   input: {
