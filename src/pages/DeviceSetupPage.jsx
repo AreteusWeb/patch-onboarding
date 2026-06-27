@@ -1,11 +1,11 @@
 // DeviceSetupPage.jsx
-// Página que abre el usuario al escanear el QR del dispositivo.
-// Ruta sugerida en tu app: /setup?id=CP-A3F2
+// Page the user lands on after scanning the device's QR code.
+// Suggested route in your app: /setup?id=CP-A3F2
 //
-// Flujo:
-// 1. Si es iPhone / no hay Web Bluetooth -> mostrar instrucciones de SoftAP (fallback)
-// 2. Si hay Web Bluetooth -> conectar por BLE, leer redes WiFi cercanas, pedir
-//    contraseña, cifrar y enviar credenciales, esperar confirmación.
+// Flow:
+// 1. If iPhone / no Web Bluetooth -> show SoftAP fallback instructions
+// 2. If Web Bluetooth is available -> connect over BLE, read nearby WiFi
+//    networks, ask for password, encrypt + send credentials, wait for confirmation.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -18,7 +18,7 @@ import {
   decodeJsonValue,
   isWebBluetoothAvailable,
   isIOS,
-} from "../utils/bleProtocol"; // ajustado: bleProtocol.js vive en src/utils/
+} from "../utils/bleProtocol";
 
 const STEPS = {
   START: "start",
@@ -47,7 +47,7 @@ export default function DeviceSetupPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setDeviceId(params.get("id") || "DESCONOCIDO");
+    setDeviceId(params.get("id") || "UNKNOWN");
 
     if (isIOS() || !isWebBluetoothAvailable()) {
       setStep(STEPS.IOS_FALLBACK);
@@ -66,18 +66,18 @@ export default function DeviceSetupPage() {
       setGattServer(server);
       const service = await server.getPrimaryService(BLE_SERVICE_UUID);
 
-      // 1. Leer la lista de redes WiFi que el dispositivo escaneó
+      // 1. Read the list of WiFi networks the device scanned
       setStep(STEPS.SCANNING_WIFI);
       const wifiListChar = await service.getCharacteristic(CHAR_WIFI_LIST_UUID);
       const wifiListValue = await wifiListChar.readValue();
       const list = decodeJsonValue(wifiListValue) || [];
       setNetworks(list);
 
-      // 2. Preparar la característica de credenciales para escribir después
+      // 2. Get the credentials characteristic ready to write to later
       const credChar = await service.getCharacteristic(CHAR_CREDENTIALS_UUID);
       setCredentialsChar(credChar);
 
-      // 3. Suscribirse al status para saber si la conexión WiFi del device funcionó
+      // 3. Subscribe to status notifications to know if the device's WiFi connection worked
       const statusChar = await service.getCharacteristic(CHAR_STATUS_UUID);
       await statusChar.startNotifications();
       statusChar.addEventListener("characteristicvaluechanged", (event) => {
@@ -85,11 +85,11 @@ export default function DeviceSetupPage() {
         if (!status) return;
         if (status.status === "connected") {
           setStep(STEPS.SUCCESS);
-          // Pequeña pausa antes de cortar BLE: le da tiempo a cualquier
-          // write que aún estuviera confirmándose del lado de Android.
+          // Small delay before disconnecting BLE: gives time for any write
+          // that was still being confirmed on the Android side.
           setTimeout(() => device.gatt.disconnect(), 500);
         } else if (status.status === "failed") {
-          setErrorMsg("El dispositivo no pudo conectarse a esa red. Verifica la contraseña.");
+          setErrorMsg("The device couldn't connect to that network. Check the password.");
           setStep(STEPS.ERROR);
         }
       });
@@ -99,8 +99,8 @@ export default function DeviceSetupPage() {
       console.error(err);
       setErrorMsg(
         err.name === "NotFoundError"
-          ? "No se seleccionó ningún dispositivo."
-          : "No se pudo conectar por Bluetooth. Intenta de nuevo."
+          ? "No device was selected."
+          : "Couldn't connect over Bluetooth. Please try again."
       );
       setStep(STEPS.ERROR);
     }
@@ -115,14 +115,14 @@ export default function DeviceSetupPage() {
     try {
       const payload = await encryptCredentials(selectedSsid, password);
       await writeCredentialsChunked(credentialsChar, payload);
-      // Ahora esperamos la notificación de status (ver listener arriba)
+      // Now we wait for the status notification (see listener above)
     } catch (err) {
       console.error(err);
-      // Si ya habíamos llegado a SUCCESS (porque la notificación de "connected"
-      // ya llegó), un error tardío aquí es solo un write que truena por el
-      // disconnect que disparamos al tener éxito. Lo ignoramos, no es un error real.
+      // If we already reached SUCCESS (because the "connected" notification
+      // already arrived), a late error here is just a write throwing because
+      // of the disconnect we triggered on success. Ignore it, it's not a real error.
       if (stepRef.current === STEPS.SUCCESS) return;
-      setErrorMsg("No se pudieron enviar las credenciales. Intenta de nuevo.");
+      setErrorMsg("Couldn't send the credentials. Please try again.");
       setStep(STEPS.ERROR);
     }
   }
@@ -130,40 +130,40 @@ export default function DeviceSetupPage() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.title}>Configurar tu dispositivo</h1>
+        <h1 style={styles.title}>Set up your device</h1>
         <p style={styles.deviceId}>ID: {deviceId}</p>
 
         {step === STEPS.IOS_FALLBACK && (
           <div>
             <p>
-              Tu teléfono no soporta Bluetooth desde el navegador. No te
-              preocupes, vamos a conectarlo por WiFi directo:
+              Your phone doesn't support Bluetooth from the browser. No
+              worries, let's connect it over WiFi directly:
             </p>
             <ol style={styles.list}>
-              <li>Ve a Configuración &gt; WiFi en tu iPhone</li>
+              <li>Go to Settings &gt; WiFi on your iPhone</li>
               <li>
-                Conéctate a la red <strong>ChestPatch_Setup_{deviceId}</strong>
+                Connect to the network <strong>ThePatch_Setup_{deviceId}</strong>
               </li>
-              <li>Se abrirá una página automáticamente — sigue las instrucciones ahí</li>
+              <li>A setup page will open automatically — follow the instructions there</li>
             </ol>
           </div>
         )}
 
         {step === STEPS.START && (
           <div>
-            <p>Vamos a conectar tu dispositivo a tu WiFi de casa. Toma menos de un minuto.</p>
+            <p>Let's connect your device to your home WiFi. This takes less than a minute.</p>
             <button style={styles.button} onClick={handleConnect}>
-              Conectar por Bluetooth
+              Connect to The Patch
             </button>
           </div>
         )}
 
-        {step === STEPS.CONNECTING && <p>Buscando tu dispositivo...</p>}
-        {step === STEPS.SCANNING_WIFI && <p>Leyendo redes WiFi cercanas...</p>}
+        {step === STEPS.CONNECTING && <p>Looking for your device...</p>}
+        {step === STEPS.SCANNING_WIFI && <p>Reading nearby WiFi networks...</p>}
 
         {step === STEPS.CHOOSE_NETWORK && (
           <form onSubmit={handleSubmitCredentials}>
-            <label style={styles.label}>Selecciona tu red WiFi</label>
+            <label style={styles.label}>Select your WiFi network</label>
             <select
               style={styles.input}
               value={selectedSsid}
@@ -171,7 +171,7 @@ export default function DeviceSetupPage() {
               required
             >
               <option value="" disabled>
-                Elige una red
+                Choose a network
               </option>
               {networks.map((n) => (
                 <option key={n.ssid} value={n.ssid}>
@@ -180,7 +180,7 @@ export default function DeviceSetupPage() {
               ))}
             </select>
 
-            <label style={styles.label}>Contraseña</label>
+            <label style={styles.label}>Password</label>
             <input
               style={styles.input}
               type="password"
@@ -190,22 +190,22 @@ export default function DeviceSetupPage() {
             />
 
             <button style={styles.button} type="submit">
-              Conectar
+              Connect
             </button>
           </form>
         )}
 
-        {step === STEPS.SENDING && <p>Enviando credenciales...</p>}
+        {step === STEPS.SENDING && <p>Sending credentials...</p>}
 
         {step === STEPS.SUCCESS && (
-          <p style={styles.success}>✅ ¡Listo! Tu dispositivo ya está conectado a WiFi.</p>
+          <p style={styles.success}>✅ All set! Your Patch is now connected to WiFi.</p>
         )}
 
         {step === STEPS.ERROR && (
           <div>
             <p style={styles.error}>{errorMsg}</p>
             <button style={styles.button} onClick={() => setStep(STEPS.START)}>
-              Intentar de nuevo
+              Try again
             </button>
           </div>
         )}
@@ -249,7 +249,7 @@ const styles = {
     padding: "12px 16px",
     borderRadius: 8,
     border: "none",
-    background: "#1a73e8",
+    background: "#1863FD",
     color: "#fff",
     fontSize: 15,
     fontWeight: 600,

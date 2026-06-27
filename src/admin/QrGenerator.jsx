@@ -1,16 +1,16 @@
 // QrGenerator.jsx
-// Herramienta interna (no la ve el usuario final) para generar el QR que se
-// imprime en la caja / patch de cada dispositivo.
+// Internal tool (not seen by end users) to generate the QR code that gets
+// printed on the box / patch of each device.
 //
-// Instalar dependencia en tu proyecto:
+// Install dependency in your project:
 //   npm install qrcode.react
 //
-// Uso: /admin/qr-generator (o donde la quieras montar dentro de tu app)
+// Usage: /admin/qr-generator (or wherever you mount it inside your app)
 
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
-const BASE_URL = "https://patch-onboarding.vercel.app/"; // <-- cambia esto por tu dominio real de Vercel 1
+const BASE_URL = "https://patch-onboarding.vercel.app/"; // <-- change to your real domain
 
 export default function QrGenerator() {
   const [deviceId, setDeviceId] = useState("CP-A3F2");
@@ -28,10 +28,10 @@ export default function QrGenerator() {
 
   return (
     <div style={{ padding: 32, fontFamily: "system-ui, sans-serif", maxWidth: 360 }}>
-      <h2>Generador de QR por dispositivo</h2>
+      <h2>Device QR Generator</h2>
 
       <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>
-        ID del dispositivo
+        Device ID
       </label>
       <input
         style={{ width: "100%", padding: 8, marginBottom: 16 }}
@@ -47,8 +47,20 @@ export default function QrGenerator() {
         {setupUrl}
       </p>
 
-      <button onClick={downloadPng} style={{ marginTop: 12, padding: "10px 16px" }}>
-        Descargar PNG
+      <button
+        onClick={downloadPng}
+        style={{
+          marginTop: 12,
+          padding: "10px 16px",
+          background: "#1863FD",
+          color: "#fff",
+          border: "none",
+          borderRadius: 8,
+          fontWeight: 600,
+          cursor: "pointer",
+        }}
+      >
+        Download PNG
       </button>
     </div>
   );

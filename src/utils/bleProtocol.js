@@ -1,17 +1,17 @@
 // bleProtocol.js
-// Protocolo BLE compartido entre la web (DeviceSetupPage) y el firmware del ESP32.
-// Estos mismos UUIDs deben coincidir EXACTO con los del .ino (ble_provisioning_test.ino)
+// BLE protocol shared between the web app (DeviceSetupPage) and the ESP32 firmware.
+// These UUIDs must match EXACTLY the ones in the .ino (ble_provisioning_test.ino)
 
 export const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 
-export const CHAR_WIFI_LIST_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; // notify/read: lista de redes WiFi cercanas (JSON)
-export const CHAR_CREDENTIALS_UUID = "0a3f1001-0001-4a76-b1b2-d34db33f0001"; // write: credenciales cifradas
-export const CHAR_STATUS_UUID = "0a3f1001-0002-4a76-b1b2-d34db33f0002"; // notify: estado de conexión
+export const CHAR_WIFI_LIST_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; // notify/read: nearby WiFi networks (JSON)
+export const CHAR_CREDENTIALS_UUID = "0a3f1001-0001-4a76-b1b2-d34db33f0001"; // write: encrypted credentials
+export const CHAR_STATUS_UUID = "0a3f1001-0002-4a76-b1b2-d34db33f0002"; // notify: connection status
 
-// ⚠️ DEMO KEY — esto es solo para que el flujo funcione mientras no hay
-// intercambio de llaves real. Antes de producción, cada dispositivo debe
-// tener su propia llave (ej. generada en fábrica y guardada también en el
-// backend), no una llave fija en el código. Ver nota en PROTOCOLO_Y_PRUEBAS.md
+// ⚠️ DEMO KEY — this is only so the flow works while there's no real key
+// exchange in place. Before production, each device should have its own
+// key (e.g. generated at the factory and also stored in the backend),
+// not a fixed key in the code. See note in PROTOCOLO_Y_PRUEBAS.md
 const DEMO_KEY_HEX = "000102030405060708090a0b0c0d0e0f"; // 16 bytes = AES-128
 
 function hexToBytes(hex) {
@@ -38,21 +38,21 @@ function bytesToBase64(bytes) {
   return window.btoa(binary);
 }
 
-// Tamaño máximo de cada escritura BLE. Android suele limitar el MTU a ~23 bytes
-// (20 de payload útil), así que mandamos las credenciales en pedacitos en vez
-// de un solo writeValue() grande.
+// Max size of each BLE write. Android often caps the MTU at ~23 bytes
+// (20 usable payload bytes), so we send the credentials in small chunks
+// instead of one big writeValue() call.
 const BLE_CHUNK_SIZE = 16;
 
-// Envuelve el payload cifrado con un header de 2 bytes (longitud total),
-// y lo manda en varios writeValue() seguidos, esperando cada uno antes
-// de mandar el siguiente (evita errores de "GATT busy" en Android).
+// Wraps the encrypted payload with a 2-byte header (total length), and
+// sends it over several sequential writeValue() calls, awaiting each one
+// before sending the next (avoids "GATT busy" errors on Android).
 async function writeChunkWithRetry(characteristic, chunk, maxAttempts = 3) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       await characteristic.writeValue(chunk);
       return;
     } catch (err) {
-      console.warn(`writeValue falló (intento ${attempt}/${maxAttempts}):`, err);
+      console.warn(`writeValue failed (attempt ${attempt}/${maxAttempts}):`, err);
       if (attempt === maxAttempts) throw err;
       await new Promise((resolve) => setTimeout(resolve, 150));
     }
@@ -69,15 +69,15 @@ export async function writeCredentialsChunked(characteristic, encryptedPayload) 
   for (let offset = 0; offset < framed.length; offset += BLE_CHUNK_SIZE) {
     const chunk = framed.slice(offset, offset + BLE_CHUNK_SIZE);
     await writeChunkWithRetry(characteristic, chunk);
-    // Pequeña pausa entre writes: el stack BLE de Android a veces marca un
-    // write como fallido (aunque sí haya llegado) si se manda el siguiente
-    // demasiado rápido. 40ms le da tiempo suficiente sin notarse para el usuario.
+    // Small pause between writes: Android's BLE stack sometimes marks a
+    // write as failed (even though it did arrive) if the next one is sent
+    // too quickly. 40ms is enough headroom without the user noticing.
     await new Promise((resolve) => setTimeout(resolve, 40));
   }
 }
 
-// Cifra { ssid, password } y devuelve un objeto Uint8Array listo para
-// escribirse en la característica BLE: [16 bytes IV][ciphertext...]
+// Encrypts { ssid, password } and returns a Uint8Array ready to be
+// written to the BLE characteristic: [16 bytes IV][ciphertext...]
 export async function encryptCredentials(ssid, password) {
   const key = await getAesKey();
   const iv = window.crypto.getRandomValues(new Uint8Array(16));
@@ -95,14 +95,15 @@ export async function encryptCredentials(ssid, password) {
   return payload;
 }
 
-// Decodifica el valor crudo (DataView) que llega de una característica BLE
-// (ej. la lista de WiFi o el status) que el firmware manda como JSON plano sin cifrar.
+// Decodes the raw value (DataView) coming from a BLE characteristic
+// (e.g. the WiFi list or the status) that the firmware sends as plain,
+// unencrypted JSON.
 export function decodeJsonValue(dataView) {
   const text = new TextDecoder().decode(dataView.buffer);
   try {
     return JSON.parse(text);
   } catch (e) {
-    console.error("No se pudo parsear JSON de BLE:", text, e);
+    console.error("Couldn't parse JSON from BLE:", text, e);
     return null;
   }
 }
@@ -114,7 +115,7 @@ export function isWebBluetoothAvailable() {
 export function isIOS() {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  // iPadOS 13+ se reporta como Mac, por eso también revisamos maxTouchPoints
+  // iPadOS 13+ reports itself as Mac, so we also check maxTouchPoints
   const isAppleTouch = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
   return /iPad|iPhone|iPod/.test(ua) || isAppleTouch;
 }
