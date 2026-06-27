@@ -8,7 +8,7 @@ export const CHAR_WIFI_LIST_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; // no
 export const CHAR_CREDENTIALS_UUID = "0a3f1001-0001-4a76-b1b2-d34db33f0001"; // write: encrypted credentials
 export const CHAR_STATUS_UUID = "0a3f1001-0002-4a76-b1b2-d34db33f0002"; // notify: connection status
 
-// ⚠️ DEMO KEY — this is only so the flow works while there's no real key
+// DEMO KEY — this is only so the flow works while there's no real key
 // exchange in place. Before production, each device should have its own
 // key (e.g. generated at the factory and also stored in the backend),
 // not a fixed key in the code. See note in PROTOCOLO_Y_PRUEBAS.md
@@ -49,10 +49,10 @@ const BLE_CHUNK_SIZE = 16;
 async function writeChunkWithRetry(characteristic, chunk, maxAttempts = 3) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await characteristic.writeValue(chunk);
+      await characteristic.writeValueWithoutResponse(chunk);
       return;
     } catch (err) {
-      console.warn(`writeValue failed (attempt ${attempt}/${maxAttempts}):`, err);
+      console.warn(`writeValueWithoutResponse failed (attempt ${attempt}/${maxAttempts}):`, err);
       if (attempt === maxAttempts) throw err;
       await new Promise((resolve) => setTimeout(resolve, 150));
     }
