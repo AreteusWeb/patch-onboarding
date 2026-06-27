@@ -177,12 +177,12 @@ export default function DeviceSetupPage() {
         <p style={styles.deviceId}>ID: {deviceId}</p>
 
         {step === STEPS.IOS_FALLBACK && (
-          <div>
-            <p>
+          <div style={{ color: "#1a1a1a" }}>
+            <p style={{ color: "#1a1a1a" }}>
               Your phone doesn't support Bluetooth from the browser. No
               worries, let's connect it over WiFi directly:
             </p>
-            <ol style={styles.list}>
+            <ol style={{ ...styles.list, color: "#1a1a1a" }}>
               <li>Go to Settings &gt; WiFi on your iPhone</li>
               <li>
                 Connect to the network <strong>ThePatch_Setup_{deviceId}</strong>
@@ -267,6 +267,7 @@ const styles = {
     background: "#0f1115",
     padding: "64px 16px",
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    colorScheme: "light",
   },
   card: {
     background: "#ffffff",
