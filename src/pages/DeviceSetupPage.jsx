@@ -44,6 +44,7 @@ export default function DeviceSetupPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [gattServer, setGattServer] = useState(null);
   const [credentialsChar, setCredentialsChar] = useState(null);
+  const statusCharRef = useRef(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -79,6 +80,7 @@ export default function DeviceSetupPage() {
 
       // 3. Subscribe to status notifications to know if the device's WiFi connection worked
       const statusChar = await service.getCharacteristic(CHAR_STATUS_UUID);
+      statusCharRef.current = statusChar;
       await statusChar.startNotifications();
       statusChar.addEventListener("characteristicvaluechanged", (event) => {
         const status = decodeJsonValue(event.target.value);
@@ -106,6 +108,45 @@ export default function DeviceSetupPage() {
     }
   }
 
+  // Backup mechanism: BLE notifications sometimes never arrive on some
+  // Android phones/Bluetooth stacks (known flakiness). Instead of relying
+  // only on the notification, we also actively ask the device "what's your
+  // status?" every second using a plain read — the same kind of read that
+  // already works reliably for the WiFi list.
+  async function pollStatusUntilDone(maxAttempts = 25) {
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (stepRef.current === STEPS.SUCCESS || stepRef.current === STEPS.ERROR) return;
+
+      try {
+        const value = await statusCharRef.current.readValue();
+        const status = decodeJsonValue(value);
+        if (status?.status === "connected") {
+          setStep(STEPS.SUCCESS);
+          return;
+        } else if (status?.status === "failed") {
+          setErrorMsg("The device couldn't connect to that network. Check the password.");
+          setStep(STEPS.ERROR);
+          return;
+        }
+        // still "connecting" -> keep polling
+      } catch (err) {
+        // The device may have already disconnected after a successful setup
+        // (it turns BLE off once provisioned). If we got here it likely means
+        // we missed the "connected" read by a hair — treat a disconnect as
+        // success rather than failure, since the device only disconnects on its own
+        // right after a successful WiFi connection.
+        console.warn("Status read failed (device may have disconnected):", err);
+        setStep(STEPS.SUCCESS);
+        return;
+      }
+    }
+    if (stepRef.current !== STEPS.SUCCESS) {
+      setErrorMsg("Timed out waiting for the device to confirm the connection.");
+      setStep(STEPS.ERROR);
+    }
+  }
+
   async function handleSubmitCredentials(e) {
     e.preventDefault();
     if (!selectedSsid || !password || !credentialsChar) return;
@@ -115,7 +156,9 @@ export default function DeviceSetupPage() {
     try {
       const payload = await encryptCredentials(selectedSsid, password);
       await writeCredentialsChunked(credentialsChar, payload);
-      // Now we wait for the status notification (see listener above)
+      // Now we wait for the status notification (see listener above) AND
+      // poll as a backup in case the notification never arrives.
+      pollStatusUntilDone();
     } catch (err) {
       console.error(err);
       // If we already reached SUCCESS (because the "connected" notification
