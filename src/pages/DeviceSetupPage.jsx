@@ -3,6 +3,9 @@
 // Suggested route in your app: /setup?id=CP-A3F2
 //
 // Flow:
+// 0. If no ?id= in the URL -> show a landing screen prompting the user to
+//    scan their QR code. They can also type their device ID manually as a
+//    fallback (the ID is printed on the device itself).
 // 1. If iPhone / no Web Bluetooth -> show SoftAP fallback instructions
 // 2. If Web Bluetooth is available -> connect over BLE, read nearby WiFi
 //    networks, ask for password, encrypt + send credentials, wait for confirmation.
@@ -21,6 +24,7 @@ import {
 } from "../utils/bleProtocol";
 
 const STEPS = {
+  NO_ID: "no_id",           // landed here without scanning a QR
   START: "start",
   CONNECTING: "connecting",
   SCANNING_WIFI: "scanning_wifi",
@@ -46,14 +50,44 @@ export default function DeviceSetupPage() {
   const [credentialsChar, setCredentialsChar] = useState(null);
   const statusCharRef = useRef(null);
 
+  // Manual device ID input, only used on the NO_ID screen
+  const [manualId, setManualId] = useState("");
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setDeviceId(params.get("id") || "UNKNOWN");
+    const id = params.get("id");
+
+    if (!id) {
+      // No QR was scanned — show the landing/entry screen
+      setStep(STEPS.NO_ID);
+      return;
+    }
+
+    setDeviceId(id);
 
     if (isIOS() || !isWebBluetoothAvailable()) {
       setStep(STEPS.IOS_FALLBACK);
     }
   }, []);
+
+  // Called when the user submits their device ID manually from the NO_ID screen
+  function handleManualId(e) {
+    e.preventDefault();
+    const trimmed = manualId.trim().toUpperCase();
+    if (!trimmed) return;
+    setDeviceId(trimmed);
+
+    // Update the URL so a reload doesn't lose the ID
+    const url = new URL(window.location.href);
+    url.searchParams.set("id", trimmed);
+    window.history.replaceState({}, "", url.toString());
+
+    if (isIOS() || !isWebBluetoothAvailable()) {
+      setStep(STEPS.IOS_FALLBACK);
+    } else {
+      setStep(STEPS.START);
+    }
+  }
 
   async function handleConnect() {
     setErrorMsg("");
@@ -174,8 +208,37 @@ export default function DeviceSetupPage() {
     <div style={styles.page}>
       <div style={styles.card}>
         <h1 style={styles.title}>Set up your device</h1>
-        <p style={styles.deviceId}>ID: {deviceId}</p>
+        {deviceId && <p style={styles.deviceId}>ID: {deviceId}</p>}
 
+        {/* ── No QR scanned: ask them to scan or enter the ID manually ── */}
+        {step === STEPS.NO_ID && (
+          <div>
+            <p style={{ color: "#1a1a1a", marginBottom: 8 }}>
+              If you have a The Patch device, scan the QR code that came in
+              the box to get started.
+            </p>
+            <p style={{ color: "#888", fontSize: 13, marginBottom: 20 }}>
+              No QR code handy? You can find your device ID printed on the
+              device itself and enter it below.
+            </p>
+            <form onSubmit={handleManualId}>
+              <label style={styles.label}>Device ID</label>
+              <input
+                style={styles.input}
+                type="text"
+                placeholder="e.g. CP-A3F2"
+                value={manualId}
+                onChange={(e) => setManualId(e.target.value)}
+                required
+              />
+              <button style={styles.button} type="submit">
+                Continue
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ── iPhone / no Web Bluetooth: SoftAP fallback ── */}
         {step === STEPS.IOS_FALLBACK && (
           <div style={{ color: "#1a1a1a" }}>
             <p style={{ color: "#1a1a1a" }}>
@@ -242,7 +305,7 @@ export default function DeviceSetupPage() {
         {step === STEPS.SENDING && <p>Sending credentials...</p>}
 
         {step === STEPS.SUCCESS && (
-          <p style={styles.success}>✅ All set! Your Patch is now connected to WiFi.</p>
+          <p style={styles.success}>All set! Your Patch is now connected to WiFi.</p>
         )}
 
         {step === STEPS.ERROR && (
