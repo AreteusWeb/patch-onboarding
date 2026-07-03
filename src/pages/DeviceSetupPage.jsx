@@ -212,6 +212,22 @@ export default function DeviceSetupPage() {
       {/* Local keyframes + responsive tweaks — no external deps */}
       <style>{`
         @keyframes areteus-spin { to { transform: rotate(360deg); } }
+
+        /* This page ignores the app-wide #root width/border/dark-mode
+           tokens from index.css (meant for a different, content-column
+           layout) so the light background fills the whole viewport,
+           with no dark bars showing on either side. */
+        html, body {
+          background: #f8fafc;
+          margin: 0;
+        }
+        #root {
+          width: 100% !important;
+          max-width: none !important;
+          border-inline: none !important;
+          margin: 0 !important;
+        }
+
         .asp-page {
           min-height: 100vh; /* fallback for older browsers */
           min-height: 100svh; /* stays put even when the mobile browser bar shows/hides */
