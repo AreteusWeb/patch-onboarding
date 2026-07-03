@@ -135,7 +135,7 @@ export default function DeviceSetupPage() {
       console.error(err);
       setErrorMsg(
         err.name === "NotFoundError"
-          ? "No device was selected."
+          ? "No device was selected. Tap \u201cTry again\u201d and choose your Patch from the list."
           : "Couldn't connect over Bluetooth. Please try again."
       );
       setStep(STEPS.ERROR);
@@ -204,23 +204,41 @@ export default function DeviceSetupPage() {
     }
   }
 
+  const isBusyStep =
+    step === STEPS.CONNECTING || step === STEPS.SCANNING_WIFI || step === STEPS.SENDING;
+
   return (
     <div style={styles.page}>
+      {/* Local keyframes for the loading spinner — no external deps */}
+      <style>{`
+        @keyframes areteus-spin { to { transform: rotate(360deg); } }
+      `}</style>
+
       <div style={styles.card}>
+        <img
+          src="https://i.imgur.com/x2IeR9Y.png"
+          alt="ARETEUS"
+          style={styles.logo}
+          referrerPolicy="no-referrer"
+        />
+
         <h1 style={styles.title}>Set up your device</h1>
         {deviceId && <p style={styles.deviceId}>ID: {deviceId}</p>}
 
         {/* ── No QR scanned: ask them to scan or enter the ID manually ── */}
         {step === STEPS.NO_ID && (
           <div>
-            <p style={{ color: "#1a1a1a", marginBottom: 8 }}>
-              If you have a The Patch device, scan the QR code that came in
-              the box to get started.
+            <p style={styles.bodyText}>
+              Scan the QR code that came with your Patch to get started.
             </p>
-            <p style={{ color: "#888", fontSize: 13, marginBottom: 20 }}>
-              No QR code handy? You can find your device ID printed on the
-              device itself and enter it below.
+            <p style={styles.helperText}>
+              Don't have the QR code? You can find your Device ID printed on
+              the device itself and enter it below.
             </p>
+            <div style={styles.notice}>
+              This setup needs Bluetooth, so please continue on your phone,
+              not on a computer.
+            </div>
             <form onSubmit={handleManualId}>
               <label style={styles.label}>Device ID</label>
               <input
@@ -240,32 +258,53 @@ export default function DeviceSetupPage() {
 
         {/* ── iPhone / no Web Bluetooth: SoftAP fallback ── */}
         {step === STEPS.IOS_FALLBACK && (
-          <div style={{ color: "#1a1a1a" }}>
-            <p style={{ color: "#1a1a1a" }}>
-              Your phone doesn't support Bluetooth from the browser. No
-              worries, let's connect it over WiFi directly:
+          <div>
+            <p style={styles.bodyText}>
+              Your phone doesn't support Bluetooth setup from the browser.
+              Connect it over WiFi instead:
             </p>
-            <ol style={{ ...styles.list, color: "#1a1a1a" }}>
-              <li>Go to Settings &gt; WiFi on your iPhone</li>
-              <li>
-                Connect to the network <strong>ThePatch_Setup_{deviceId}</strong>
-              </li>
-              <li>A setup page will open automatically — follow the instructions there</li>
-            </ol>
+            <div style={styles.stepList}>
+              <div style={styles.stepItem}>
+                <span style={styles.stepNumber}>1</span>
+                <p style={styles.stepText}>Go to Settings &gt; WiFi on your iPhone.</p>
+              </div>
+              <div style={styles.stepItem}>
+                <span style={styles.stepNumber}>2</span>
+                <p style={styles.stepText}>
+                  Connect to the network <strong>ThePatch_Setup_{deviceId}</strong>.
+                </p>
+              </div>
+              <div style={styles.stepItem}>
+                <span style={styles.stepNumber}>3</span>
+                <p style={styles.stepText}>
+                  A setup page will open automatically. Follow the instructions there to finish connecting your Patch to WiFi.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {step === STEPS.START && (
           <div>
-            <p>Let's connect your device to your home WiFi. This takes less than a minute.</p>
+            <p style={styles.bodyText}>
+              Let's connect your device to your home WiFi. This takes less than a minute.
+            </p>
             <button style={styles.button} onClick={handleConnect}>
               Connect to The Patch
             </button>
           </div>
         )}
 
-        {step === STEPS.CONNECTING && <p>Looking for your device...</p>}
-        {step === STEPS.SCANNING_WIFI && <p>Reading nearby WiFi networks...</p>}
+        {isBusyStep && (
+          <div style={styles.busyRow}>
+            <span style={styles.spinner} />
+            <p style={styles.busyText}>
+              {step === STEPS.CONNECTING && "Looking for your device..."}
+              {step === STEPS.SCANNING_WIFI && "Reading nearby WiFi networks..."}
+              {step === STEPS.SENDING && "Sending credentials..."}
+            </p>
+          </div>
+        )}
 
         {step === STEPS.CHOOSE_NETWORK && (
           <form onSubmit={handleSubmitCredentials}>
@@ -302,15 +341,19 @@ export default function DeviceSetupPage() {
           </form>
         )}
 
-        {step === STEPS.SENDING && <p>Sending credentials...</p>}
-
         {step === STEPS.SUCCESS && (
-          <p style={styles.success}>All set! Your Patch is now connected to WiFi.</p>
+          <div style={styles.statusRow}>
+            <span style={{ ...styles.statusDot, background: "#0f172a" }} />
+            <p style={styles.success}>All set! Your Patch is now connected to WiFi.</p>
+          </div>
         )}
 
         {step === STEPS.ERROR && (
           <div>
-            <p style={styles.error}>{errorMsg}</p>
+            <div style={styles.statusRow}>
+              <span style={{ ...styles.statusDot, background: "#ef4444" }} />
+              <p style={styles.error}>{errorMsg}</p>
+            </div>
             <button style={styles.button} onClick={() => setStep(STEPS.START)}>
               Try again
             </button>
@@ -327,54 +370,113 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
-    background: "#0f1115",
-    padding: "64px 16px",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    background: "#f8fafc", // slate-50
+    padding: "80px 16px",
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     colorScheme: "light",
   },
   card: {
     background: "#ffffff",
-    borderRadius: 16,
+    borderRadius: 12,
+    border: "1px solid #e2e8f0", // slate-200
     padding: 32,
     maxWidth: 420,
     width: "100%",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-    color: "#1a1a1a",
+    color: "#0f172a", // slate-900
     lineHeight: 1.55,
     letterSpacing: "0.1px",
   },
+  logo: {
+    height: 26,
+    width: "auto",
+    objectFit: "contain",
+    marginBottom: 24,
+  },
   title: {
-    fontSize: 23,
-    fontWeight: 650,
-    letterSpacing: "0.1px",
+    fontSize: 22,
+    fontWeight: 600,
+    letterSpacing: "-0.01em",
     lineHeight: 1.3,
     margin: 0,
     marginBottom: 6,
-    color: "#1a1a1a",
+    color: "#0f172a",
   },
-  deviceId: { color: "#888", fontSize: 13, marginBottom: 20 },
-  label: { display: "block", fontSize: 13, fontWeight: 600, marginTop: 16, marginBottom: 6 },
+  deviceId: { color: "#94a3b8", fontSize: 13, marginBottom: 20 },
+  bodyText: { color: "#334155", fontSize: 14, marginBottom: 8 },
+  helperText: { color: "#94a3b8", fontSize: 13, marginBottom: 20 },
+  notice: {
+    fontSize: 13,
+    color: "#334155",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    borderRadius: 8,
+    padding: "10px 12px",
+    marginBottom: 20,
+  },
+  label: {
+    display: "block",
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    color: "#94a3b8",
+    marginTop: 16,
+    marginBottom: 6,
+  },
   input: {
     width: "100%",
-    padding: "10px 12px",
+    padding: "11px 14px",
     borderRadius: 8,
-    border: "1px solid #ddd",
-    fontSize: 15,
+    border: "1px solid #e2e8f0",
+    background: "#f8fafc",
+    fontSize: 14,
+    color: "#0f172a",
     boxSizing: "border-box",
+    outline: "none",
   },
   button: {
     marginTop: 20,
     width: "100%",
-    padding: "12px 16px",
-    borderRadius: 8,
+    padding: "13px 16px",
+    borderRadius: 999,
     border: "none",
-    background: "#1863FD",
+    background: "#0f172a", // slate-900
     color: "#fff",
-    fontSize: 15,
-    fontWeight: 600,
+    fontSize: 14,
+    fontWeight: 500,
     cursor: "pointer",
   },
-  list: { paddingLeft: 20, lineHeight: 1.6 },
-  success: { color: "#188038", fontWeight: 600 },
-  error: { color: "#c5221f" },
+  list: { paddingLeft: 20, lineHeight: 1.6, color: "#334155", fontSize: 14 },
+  stepList: { display: "flex", flexDirection: "column", gap: 14, marginTop: 4 },
+  stepItem: { display: "flex", alignItems: "flex-start", gap: 12 },
+  stepNumber: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 22,
+    height: 22,
+    borderRadius: "50%",
+    background: "#0f172a",
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  stepText: { color: "#334155", fontSize: 14, margin: 0, paddingTop: 2 },
+  busyRow: { display: "flex", alignItems: "center", gap: 10 },
+  spinner: {
+    width: 16,
+    height: 16,
+    borderRadius: "50%",
+    border: "2px solid #e2e8f0",
+    borderTopColor: "#0f172a",
+    animation: "areteus-spin 0.7s linear infinite",
+    flexShrink: 0,
+  },
+  busyText: { color: "#334155", fontSize: 14, margin: 0 },
+  statusRow: { display: "flex", alignItems: "flex-start", gap: 10 },
+  statusDot: { width: 8, height: 8, borderRadius: "50%", marginTop: 6, flexShrink: 0 },
+  success: { color: "#0f172a", fontWeight: 500, fontSize: 14, margin: 0 },
+  error: { color: "#ef4444", fontSize: 14, margin: 0 },
 };
