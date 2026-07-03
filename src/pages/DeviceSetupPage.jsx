@@ -208,10 +208,20 @@ export default function DeviceSetupPage() {
     step === STEPS.CONNECTING || step === STEPS.SCANNING_WIFI || step === STEPS.SENDING;
 
   return (
-    <div style={styles.page}>
-      {/* Local keyframes for the loading spinner — no external deps */}
+    <div className="asp-page" style={styles.page}>
+      {/* Local keyframes + responsive tweaks — no external deps */}
       <style>{`
         @keyframes areteus-spin { to { transform: rotate(360deg); } }
+        .asp-page {
+          min-height: 100vh; /* fallback for older browsers */
+          min-height: 100svh; /* stays put even when the mobile browser bar shows/hides */
+          align-items: flex-start;
+        }
+        @media (min-width: 900px) {
+          .asp-page {
+            align-items: center;
+          }
+        }
       `}</style>
 
       <div style={styles.card}>
@@ -342,18 +352,12 @@ export default function DeviceSetupPage() {
         )}
 
         {step === STEPS.SUCCESS && (
-          <div style={styles.statusRow}>
-            <span style={{ ...styles.statusDot, background: "#0f172a" }} />
-            <p style={styles.success}>All set! Your Patch is now connected to WiFi.</p>
-          </div>
+          <p style={styles.success}>All set! Your Patch is now connected to WiFi.</p>
         )}
 
         {step === STEPS.ERROR && (
           <div>
-            <div style={styles.statusRow}>
-              <span style={{ ...styles.statusDot, background: "#ef4444" }} />
-              <p style={styles.error}>{errorMsg}</p>
-            </div>
+            <p style={styles.error}>{errorMsg}</p>
             <button style={styles.button} onClick={() => setStep(STEPS.START)}>
               Try again
             </button>
@@ -366,10 +370,8 @@ export default function DeviceSetupPage() {
 
 const styles = {
   page: {
-    minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
-    alignItems: "flex-start",
     background: "#f8fafc", // slate-50
     padding: "80px 16px",
     fontFamily:
@@ -475,8 +477,6 @@ const styles = {
     flexShrink: 0,
   },
   busyText: { color: "#334155", fontSize: 14, margin: 0 },
-  statusRow: { display: "flex", alignItems: "flex-start", gap: 10 },
-  statusDot: { width: 8, height: 8, borderRadius: "50%", marginTop: 6, flexShrink: 0 },
   success: { color: "#0f172a", fontWeight: 500, fontSize: 14, margin: 0 },
   error: { color: "#ef4444", fontSize: 14, margin: 0 },
 };
