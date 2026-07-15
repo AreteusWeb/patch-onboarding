@@ -81,7 +81,7 @@ Follow these steps to test the Bluetooth provisioning flow:
 
 8. **Verify success:**
    - Serial Monitor should show: `Connected! IP: ...`
-   - App page should display: `✅ Ready!`
+   - App page should display: `Ready!`
 
 
 ---
@@ -131,7 +131,7 @@ You can also test this from Android to confirm the fallback works on both platfo
 
 ---
 
-## Security Notice ⚠️
+## Security Notice 
 
 ### Current Implementation (Demo Only)
 
@@ -150,5 +150,13 @@ Before deploying to real users, implement proper key management:
 3. **Secure Backend:** Store credentials encrypted at rest and never expose the provisioning key
 
 This can be handled as a separate task — it doesn't block testing the current flow and firmware.
+
+---
+
+### Deploy
+
+The site is deployed here:
+
+https://setup.areteus.com/
 
 ---
