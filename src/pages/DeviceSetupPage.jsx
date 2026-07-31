@@ -375,11 +375,11 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     boxSizing: "border-box",
     minHeight: "100svh",
     background: "#f8fafc", // slate-50
-    padding: "24px 16px",
+    padding: "12vh 16px 24px",
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     colorScheme: "light",
