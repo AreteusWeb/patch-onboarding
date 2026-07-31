@@ -231,12 +231,7 @@ export default function DeviceSetupPage() {
         .asp-page {
           min-height: 100vh; /* fallback for older browsers */
           min-height: 100svh; /* stays put even when the mobile browser bar shows/hides */
-          align-items: flex-start;
-        }
-        @media (min-width: 900px) {
-          .asp-page {
-            align-items: center;
-          }
+          align-items: center;
         }
       `}</style>
 
@@ -385,7 +380,7 @@ const styles = {
     display: "flex",
     justifyContent: "center",
     background: "#f8fafc", // slate-50
-    padding: "80px 16px",
+    padding: "24px 16px",
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     colorScheme: "light",
