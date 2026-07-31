@@ -213,25 +213,20 @@ export default function DeviceSetupPage() {
       <style>{`
         @keyframes areteus-spin { to { transform: rotate(360deg); } }
 
-        /* This page ignores the app-wide #root width/border/dark-mode
-           tokens from index.css (meant for a different, content-column
-           layout) so the light background fills the whole viewport,
-           with no dark bars showing on either side. */
-        html, body {
-          background: #f8fafc;
+        /* Override Vite template layout tokens so this page can
+           fill and center in the viewport. */
+        html, body, #root {
+          height: 100%;
           margin: 0;
+          background: #f8fafc;
         }
         #root {
           width: 100% !important;
           max-width: none !important;
           border-inline: none !important;
           margin: 0 !important;
-        }
-
-        .asp-page {
-          min-height: 100vh; /* fallback for older browsers */
-          min-height: 100svh; /* stays put even when the mobile browser bar shows/hides */
-          align-items: center;
+          min-height: 100svh;
+          display: block !important;
         }
       `}</style>
 
@@ -378,7 +373,11 @@ export default function DeviceSetupPage() {
 const styles = {
   page: {
     display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
     justifyContent: "center",
+    boxSizing: "border-box",
+    minHeight: "100svh",
     background: "#f8fafc", // slate-50
     padding: "24px 16px",
     fontFamily:
