@@ -261,10 +261,6 @@ export default function DeviceSetupPage() {
               Don't have the QR code? You can find your Device ID printed on
               the device itself and enter it below.
             </p>
-            <div style={styles.notice}>
-              This setup needs Bluetooth, so please continue on your phone,
-              not on a computer.
-            </div>
             <form onSubmit={handleManualId}>
               <label style={styles.label}>Device ID</label>
               <input
@@ -423,15 +419,6 @@ const styles = {
   deviceId: { color: "#94a3b8", fontSize: 13, marginBottom: 20 },
   bodyText: { color: "#334155", fontSize: 14, marginBottom: 8 },
   helperText: { color: "#94a3b8", fontSize: 13, marginBottom: 20 },
-  notice: {
-    fontSize: 13,
-    color: "#334155",
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: 8,
-    padding: "10px 12px",
-    marginBottom: 20,
-  },
   label: {
     display: "block",
     fontSize: 11,
