@@ -365,6 +365,28 @@ export default function DeviceSetupPage() {
             </button>
           </div>
         )}
+
+        <p style={styles.footer}>
+          By continuing, you agree to our{" "}
+          <a
+            href="https://areteus.com/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.footerLink}
+          >
+            Privacy Policy
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://areteus.com/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.footerLink}
+          >
+            Terms of Service
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
@@ -476,4 +498,17 @@ const styles = {
   busyText: { color: "#334155", fontSize: 14, margin: 0 },
   success: { color: "#0f172a", fontWeight: 500, fontSize: 14, margin: 0 },
   error: { color: "#ef4444", fontSize: 14, margin: 0 },
+  footer: {
+    marginTop: 28,
+    paddingTop: 16,
+    borderTop: "1px solid #e2e8f0",
+    fontSize: 12,
+    color: "#94a3b8",
+    textAlign: "center",
+  },
+  footerLink: {
+    color: "#64748b",
+    textDecoration: "underline",
+    textUnderlineOffset: 2,
+  },
 };
